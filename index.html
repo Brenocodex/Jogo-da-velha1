@@ -109,6 +109,20 @@
         #gameOverMessage button {
             margin-top: 20px;
         }
+        #drawMessage {
+            display: none;
+            background: rgba(255, 165, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -159,10 +173,15 @@
         <button onclick="abandonGame()">Abandonar Jogo</button>
     </div>
 
+    <div id="drawMessage">
+        <p>EMPATE!</p>
+    </div>
+
     <script>
         const board = document.getElementById("board");
         const gameOverMessage = document.getElementById("gameOverMessage");
         const gameOverText = document.getElementById("gameOverText");
+        const drawMessage = document.getElementById("drawMessage");
         let currentPlayer = "X";
         let gameState = ["", "", "", "", "", "", "", "", ""];
         let isFriendGame = false;
@@ -210,7 +229,7 @@
         }
 
         function setCurrentPlayerLabel() {
-            document.getElementById("currentPlayerLabel").innerText = `${currentPlayer === "X" ? player1Name : player2Name}'s Turn`;
+            document.getElementById("currentPlayerLabel").innerText = `${currentPlayer === "X" ? player1Name : player2Name}' Sua vez`;
         }
 
         function createBoard() {
@@ -225,10 +244,11 @@
         }
 
         function handleClick(index) {
-            if (!gameState[index] && !checkWinner()) {
+            if (!gameState[index] && !checkWinner() && !checkDraw()) {
                 gameState[index] = currentPlayer;
                 board.children[index].innerText = currentPlayer;
                 if (checkWinner()) return;
+                if (checkDraw()) return;
                 currentPlayer = currentPlayer === "X" ? "O" : "X";
                 setCurrentPlayerLabel();
                 if (!isFriendGame) {
@@ -266,6 +286,18 @@
             return false;
         }
 
+        function checkDraw() {
+            if (!gameState.includes("")) {
+                drawMessage.style.display = "block";
+                setTimeout(() => {
+                    drawMessage.style.display = "none";
+                    restartGame();
+                }, 3000);
+                return true;
+            }
+            return false;
+        }
+
         function aiMove() {
             const availableMoves = gameState.map((val, index) => val === "" ? index : -1).filter(index => index !== -1);
             let move;
@@ -279,6 +311,7 @@
             gameState[move] = "O";
             board.children[move].innerText = "O";
             if (checkWinner()) return;
+            if (checkDraw()) return;
             currentPlayer = "X";
             setCurrentPlayerLabel();
         }
