@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #8a2be2, #00bfff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+        h1 {
+            color: #000;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
+            font-size: 3rem;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: transform 0.2s ease-in-out, background-color 0.3s ease;
+        }
+        .cell:hover {
+            transform: scale(1.1);
+            background-color: #f0e68c;
+        }
+        .winner {
+            animation: winner-glow 0.5s infinite alternate;
+        }
+        @keyframes winner-glow {
+            from { background-color: #32cd32; }
+            to { background-color: #7fff00; }
+        }
+        .panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            text-align: center;
+        }
+        .input-field {
+            margin: 10px 0;
+        }
+        .input-field input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            width: 180px;
+            box-sizing: border-box;
+        }
+        .game-settings {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            padding: 15px;
+            font-size: 1rem;
+            color: white;
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+        }
+        button:hover {
+            transform: scale(1.1);
+            background-color: #f39c12;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        #gameOverMessage {
+            display: none;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+        #gameOverMessage button {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel" id="panel">
+        <h1>Jogo da Velha</h1>
+        <div id="gameModeSelection">
+            <button onclick="chooseMode('friend')">Jogar com Amigo</button>
+            <button onclick="chooseMode('computer')">Jogar com a Máquina</button>
+        </div>
+        
+        <div id="friendModeInputs" class="game-settings" style="display: none;">
+            <div class="input-field">
+                <label for="player1">Nome do Jogador 1:</label>
+                <input type="text" id="player1" placeholder="Jogador 1" />
+            </div>
+            <div class="input-field">
+                <label for="player2">Nome do Jogador 2:</label>
+                <input type="text" id="player2" placeholder="Jogador 2" />
+            </div>
+            <button onclick="startGame('friend')">Iniciar Jogo</button>
+        </div>
+
+        <div id="computerModeInputs" class="game-settings" style="display: none;">
+            <div class="input-field">
+                <label for="difficulty">Escolha a Dificuldade:</label>
+                <select id="difficulty">
+                    <option value="easy">Fácil</option>
+                    <option value="medium">Médio</option>
+                    <option value="hard">Difícil</option>
+                </select>
+            </div>
+            <button onclick="startGame('computer')">Iniciar Jogo</button>
+        </div>
+    </div>
+
+    <div id="game" style="display: none;">
+        <h1 id="currentPlayerLabel"></h1>
+        <div class="board" id="board"></div>
+        <div id="scoreBoard" style="display: none;">
+            <h2 id="player1Score">Jogador 1: 0</h2>
+            <h2 id="player2Score">Jogador 2: 0</h2>
+        </div>
+    </div>
+
+    <div id="gameOverMessage">
+        <p id="gameOverText"></p>
+        <button onclick="restartGame()">OK</button>
+        <button onclick="abandonGame()">Abandonar Jogo</button>
+    </div>
+
+    <script>
+        const board = document.getElementById("board");
+        const gameOverMessage = document.getElementById("gameOverMessage");
+        const gameOverText = document.getElementById("gameOverText");
+        let currentPlayer = "X";
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let isFriendGame = false;
+        let player1Name = "Jogador 1";
+        let player2Name = "Jogador 2";
+        let player1Score = 0;
+        let player2Score = 0;
+        let difficulty = "easy";
+        let gameMode = "";
+        const gameModes = ["friend", "computer"];
+
+        function chooseMode(mode) {
+            gameMode = mode;
+            if (mode === "friend") {
+                document.getElementById("gameModeSelection").style.display = "none";
+                document.getElementById("friendModeInputs").style.display = "block";
+            } else {
+                document.getElementById("gameModeSelection").style.display = "none";
+                document.getElementById("computerModeInputs").style.display = "block";
+            }
+        }
+
+        function startGame(mode) {
+            if (mode === "friend") {
+                player1Name = document.getElementById("player1").value || player1Name;
+                player2Name = document.getElementById("player2").value || player2Name;
+                isFriendGame = true;
+            } else {
+                difficulty = document.getElementById("difficulty").value || "easy";
+                isFriendGame = false;
+            }
+            document.getElementById("panel").style.display = "none";
+            document.getElementById("game").style.display = "block";
+            createBoard();
+            updateScoreBoard();
+            setCurrentPlayerLabel();
+        }
+
+        function updateScoreBoard() {
+            if (isFriendGame) {
+                document.getElementById("scoreBoard").style.display = "block";
+                document.getElementById("player1Score").innerText = `${player1Name}: ${player1Score}`;
+                document.getElementById("player2Score").innerText = `${player2Name}: ${player2Score}`;
+            }
+        }
+
+        function setCurrentPlayerLabel() {
+            document.getElementById("currentPlayerLabel").innerText = `${currentPlayer === "X" ? player1Name : player2Name}'s Turn`;
+        }
+
+        function createBoard() {
+            board.innerHTML = "";
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                cell.addEventListener("click", () => handleClick(i));
+                board.appendChild(cell);
+            }
+        }
+
+        function handleClick(index) {
+            if (!gameState[index] && !checkWinner()) {
+                gameState[index] = currentPlayer;
+                board.children[index].innerText = currentPlayer;
+                if (checkWinner()) return;
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                setCurrentPlayerLabel();
+                if (!isFriendGame) {
+                    if (currentPlayer === "O") {
+                        setTimeout(() => aiMove(), 500);
+                    }
+                }
+            }
+        }
+
+        function checkWinner() {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (const combo of winningCombinations) {
+                const [a, b, c] = combo;
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    document.querySelectorAll(".cell")[a].classList.add("winner");
+                    document.querySelectorAll(".cell")[b].classList.add("winner");
+                    document.querySelectorAll(".cell")[c].classList.add("winner");
+                    if (gameState[a] === "X") {
+                        player1Score++;
+                        gameOverText.innerText = `Você ganhou, ${player1Name}!`;
+                    } else {
+                        player2Score++;
+                        gameOverText.innerText = `Você ganhou, ${player2Name}!`;
+                    }
+                    updateScoreBoard();
+                    showGameOver();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function aiMove() {
+            const availableMoves = gameState.map((val, index) => val === "" ? index : -1).filter(index => index !== -1);
+            let move;
+            if (difficulty === "easy") {
+                move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            } else if (difficulty === "medium") {
+                move = availableMoves.find(index => checkAiWinningMove(index)) || availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            } else {
+                move = bestMoveForHardDifficulty();
+            }
+            gameState[move] = "O";
+            board.children[move].innerText = "O";
+            if (checkWinner()) return;
+            currentPlayer = "X";
+            setCurrentPlayerLabel();
+        }
+
+        function checkAiWinningMove(index) {
+            const tempState = [...gameState];
+            tempState[index] = "O";
+            return checkWinner(tempState);
+        }
+
+        function bestMoveForHardDifficulty() {
+            return gameState.findIndex(val => val === "");
+        }
+
+        function showGameOver() {
+            gameOverMessage.style.display = "block";
+        }
+
+        function restartGame() {
+            gameOverMessage.style.display = "none";
+            createBoard();
+            currentPlayer = "X";
+            setCurrentPlayerLabel();
+        }
+
+        function abandonGame() {
+            location.reload();  // Volta à página inicial (recarrega o jogo)
+        }
+    </script>
+</body>
+</html>
