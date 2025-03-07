@@ -198,11 +198,9 @@
             if (mode === "friend") {
                 document.getElementById("gameModeSelection").style.display = "none";
                 document.getElementById("friendModeInputs").style.display = "block";
-                document.body.style.background = "linear-gradient(135deg, #8a2be2, #00bfff)"; // fundo para jogo com amigo
             } else {
                 document.getElementById("gameModeSelection").style.display = "none";
                 document.getElementById("computerModeInputs").style.display = "block";
-                document.body.style.background = "linear-gradient(135deg, #ff6347, #ff7f50)"; // fundo para jogo contra a máquina
             }
         }
 
@@ -220,6 +218,9 @@
             createBoard();
             updateScoreBoard();
             setCurrentPlayerLabel();
+            if (!isFriendGame && currentPlayer === "O") {
+                setTimeout(() => aiMove(), 500); // A IA faz o primeiro movimento se for a vez dela
+            }
         }
 
         function updateScoreBoard() {
@@ -301,15 +302,7 @@
         }
 
         function aiMove() {
-            const availableMoves = gameState.map((val, index) => val === "" ? index : -1).filter(index => index !== -1);
-            let move;
-            if (difficulty === "easy") {
-                move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            } else if (difficulty === "medium") {
-                move = availableMoves.find(index => checkAiWinningMove(index)) || availableMoves[Math.floor(Math.random() * availableMoves.length)];
-            } else {
-                move = bestMoveForHardDifficulty();
-            }
+            let move = getBestMove();
             gameState[move] = "O";
             board.children[move].innerText = "O";
             if (checkWinner()) return;
@@ -318,14 +311,48 @@
             setCurrentPlayerLabel();
         }
 
-        function checkAiWinningMove(index) {
-            const tempState = [...gameState];
-            tempState[index] = "O";
-            return checkWinner(tempState);
+        function getBestMove() {
+            // Se a IA pode ganhar, jogue para ganhar
+            const winningMove = getWinningMove("O");
+            if (winningMove !== -1) return winningMove;
+
+            // Se o jogador pode ganhar, bloqueie
+            const blockingMove = getWinningMove("X");
+            if (blockingMove !== -1) return blockingMove;
+
+            // Caso contrário, jogue de forma estratégica
+            // Primeira opção: jogue no centro
+            if (gameState[4] === "") return 4;
+
+            // Segunda opção: jogue em um canto livre
+            const corners = [0, 2, 6, 8];
+            for (let corner of corners) {
+                if (gameState[corner] === "") return corner;
+            }
+
+            // Última opção: jogue em uma borda livre
+            const edges = [1, 3, 5, 7];
+            for (let edge of edges) {
+                if (gameState[edge] === "") return edge;
+            }
+
+            return -1; // Não há jogada possível
         }
 
-        function bestMoveForHardDifficulty() {
-            return gameState.findIndex(val => val === "");
+        function getWinningMove(player) {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            for (const combo of winningCombinations) {
+                const [a, b, c] = combo;
+                if (gameState[a] === player && gameState[b] === player && gameState[c] === "") return c;
+                if (gameState[a] === player && gameState[c] === player && gameState[b] === "") return b;
+                if (gameState[b] === player && gameState[c] === player && gameState[a] === "") return a;
+            }
+            return -1;
         }
 
         function showGameOver() {
@@ -333,14 +360,15 @@
         }
 
         function restartGame() {
-            gameOverMessage.style.display = "none";
-            createBoard();
+            gameState = ["", "", "", "", "", "", "", "", ""];
             currentPlayer = "X";
+            createBoard();
             setCurrentPlayerLabel();
+            gameOverMessage.style.display = "none";
         }
 
         function abandonGame() {
-            location.reload();  // Volta à página inicial (recarrega o jogo)
+            location.reload();
         }
     </script>
 </body>
