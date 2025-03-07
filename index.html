@@ -198,9 +198,11 @@
             if (mode === "friend") {
                 document.getElementById("gameModeSelection").style.display = "none";
                 document.getElementById("friendModeInputs").style.display = "block";
+                document.body.style.background = "linear-gradient(135deg, #8a2be2, #00bfff)"; // fundo para jogo com amigo
             } else {
                 document.getElementById("gameModeSelection").style.display = "none";
                 document.getElementById("computerModeInputs").style.display = "block";
+                document.body.style.background = "linear-gradient(135deg, #ff6347, #ff7f50)"; // fundo para jogo contra a máquina
             }
         }
 
